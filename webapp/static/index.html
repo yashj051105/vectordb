@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>vectordb — search console</title>
+<style>
+  :root {
+    --bg: #0f1320;
+    --panel: #161b2c;
+    --line: #2a3050;
+    --text: #e8e6de;
+    --muted: #8991ad;
+    --accent: #7c6cf0;
+    --accent-dim: #4a3f9e;
+    --amber: #e0a458;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Iowan Old Style", "Georgia", serif;
+    min-height: 100vh;
+  }
+  .wrap {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 56px 24px 80px;
+  }
+  header h1 {
+    font-size: 2.1rem;
+    font-weight: 500;
+    margin: 0 0 6px;
+    letter-spacing: -0.01em;
+  }
+  header p {
+    color: var(--muted);
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 0.86rem;
+    line-height: 1.6;
+    margin: 0 0 36px;
+    max-width: 62ch;
+  }
+  .search-box {
+    position: relative;
+  }
+  input[type="text"] {
+    width: 100%;
+    padding: 16px 18px;
+    font-size: 1.05rem;
+    font-family: inherit;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.15s ease;
+  }
+  input[type="text"]:focus { border-color: var(--accent); }
+  input[type="text"]::placeholder { color: var(--muted); }
+
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 18px;
+    margin-top: 18px;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 0.82rem;
+    color: var(--muted);
+  }
+  .mode-toggle {
+    display: inline-flex;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .mode-toggle button {
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    padding: 7px 14px;
+    font-family: inherit;
+    font-size: 0.82rem;
+    cursor: pointer;
+  }
+  .mode-toggle button.active {
+    background: var(--accent-dim);
+    color: var(--text);
+  }
+  .nprobe-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    opacity: 0.4;
+    pointer-events: none;
+    transition: opacity 0.15s ease;
+  }
+  .nprobe-row.enabled { opacity: 1; pointer-events: auto; }
+  input[type="range"] { accent-color: var(--accent); width: 120px; }
+
+  select {
+    background: var(--panel);
+    color: var(--text);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-family: inherit;
+    font-size: 0.82rem;
+  }
+
+  .status-line {
+    margin-top: 14px;
+    min-height: 20px;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 0.8rem;
+    color: var(--amber);
+  }
+
+  .results {
+    margin-top: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .result {
+    padding: 16px 0;
+    border-top: 1px solid var(--line);
+  }
+  .result:first-child { border-top: none; }
+  .result-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 6px;
+  }
+  .result-topic {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 0.72rem;
+    color: var(--muted);
+    letter-spacing: 0.02em;
+  }
+  .result-score {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 0.78rem;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+  .result-text {
+    font-size: 1rem;
+    line-height: 1.55;
+  }
+  .score-bar {
+    height: 3px;
+    background: var(--line);
+    border-radius: 2px;
+    margin-top: 8px;
+    overflow: hidden;
+  }
+  .score-bar-fill {
+    height: 100%;
+    background: var(--accent);
+  }
+  .empty-state {
+    margin-top: 40px;
+    color: var(--muted);
+    font-size: 0.92rem;
+    line-height: 1.7;
+  }
+  .empty-state code {
+    color: var(--amber);
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 0.85em;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>vectordb search console</h1>
+    <p id="meta-line">loading index…</p>
+  </header>
+
+  <div class="search-box">
+    <input type="text" id="query" placeholder="Type a customer complaint, in your own words…" autofocus>
+  </div>
+
+  <div class="controls">
+    <div class="mode-toggle">
+      <button id="mode-flat" class="active">exact</button>
+      <button id="mode-ivf">approximate</button>
+    </div>
+    <div class="nprobe-row" id="nprobe-row">
+      <span>nprobe</span>
+      <input type="range" id="nprobe" min="1" max="48" value="6">
+      <span id="nprobe-val">6</span>
+    </div>
+    <select id="topic-filter">
+      <option value="">all topics</option>
+    </select>
+  </div>
+
+  <div class="status-line" id="status-line"></div>
+
+  <div class="results" id="results"></div>
+  <div class="empty-state" id="empty-state">
+    This isn't keyword search — it matches by meaning. Try
+    <code>"they charged me twice"</code> or <code>"the app keeps crashing"</code>.
+  </div>
+</div>
+
+<script>
+const queryInput = document.getElementById("query");
+const resultsEl = document.getElementById("results");
+const emptyEl = document.getElementById("empty-state");
+const statusEl = document.getElementById("status-line");
+const metaLine = document.getElementById("meta-line");
+const modeFlat = document.getElementById("mode-flat");
+const modeIvf = document.getElementById("mode-ivf");
+const nprobeRow = document.getElementById("nprobe-row");
+const nprobeSlider = document.getElementById("nprobe");
+const nprobeVal = document.getElementById("nprobe-val");
+const topicFilter = document.getElementById("topic-filter");
+
+let mode = "flat";
+let debounceTimer = null;
+
+nprobeSlider.addEventListener("input", () => {
+  nprobeVal.textContent = nprobeSlider.value;
+  runSearch();
+});
+
+modeFlat.addEventListener("click", () => setMode("flat"));
+modeIvf.addEventListener("click", () => setMode("ivf"));
+
+function setMode(m) {
+  mode = m;
+  modeFlat.classList.toggle("active", m === "flat");
+  modeIvf.classList.toggle("active", m === "ivf");
+  nprobeRow.classList.toggle("enabled", m === "ivf");
+  runSearch();
+}
+
+topicFilter.addEventListener("change", runSearch);
+
+queryInput.addEventListener("input", () => {
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(runSearch, 180);
+});
+
+async function loadMeta() {
+  const res = await fetch("/api/meta");
+  const data = await res.json();
+  metaLine.textContent =
+    `${data.n_docs.toLocaleString()} generated support tickets · ${data.topics.length} topics · ${data.dim}-dim embeddings`;
+  data.topics.forEach(t => {
+    const opt = document.createElement("option");
+    opt.value = t;
+    opt.textContent = t.replace(/_/g, " ");
+    topicFilter.appendChild(opt);
+  });
+}
+
+async function runSearch() {
+  const query = queryInput.value.trim();
+  if (!query) {
+    resultsEl.innerHTML = "";
+    statusEl.textContent = "";
+    emptyEl.style.display = "block";
+    return;
+  }
+  emptyEl.style.display = "none";
+
+  const res = await fetch("/api/search", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      query, mode,
+      nprobe: parseInt(nprobeSlider.value, 10),
+      k: 6,
+      topic: topicFilter.value,
+    }),
+  });
+  const data = await res.json();
+
+  statusEl.textContent = `${data.results.length} results in ${data.elapsed_ms.toFixed(3)} ms  (${mode === "ivf" ? "approximate, nprobe=" + nprobeSlider.value : "exact"})`;
+
+  resultsEl.innerHTML = "";
+  data.results.forEach(r => {
+    const pct = Math.max(0, Math.min(100, r.score * 100));
+    const div = document.createElement("div");
+    div.className = "result";
+    div.innerHTML = `
+      <div class="result-top">
+        <span class="result-topic">${r.topic.replace(/_/g, " ")}</span>
+        <span class="result-score">${r.score.toFixed(3)}</span>
+      </div>
+      <div class="result-text">${r.text}</div>
+      <div class="score-bar"><div class="score-bar-fill" style="width:${pct}%"></div></div>
+    `;
+    resultsEl.appendChild(div);
+  });
+}
+
+loadMeta().then(() => {
+  const params = new URLSearchParams(window.location.search);
+  const q = params.get("q");
+  const m = params.get("mode");
+  if (q) {
+    queryInput.value = q;
+    if (m === "ivf") setMode("ivf"); else runSearch();
+  }
+});
+</script>
+</body>
+</html>

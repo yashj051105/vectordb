@@ -1,0 +1,58 @@
+<svg width="680" height="500" viewBox="0 0 680 500" xmlns="http://www.w3.org/2000/svg" role="img">
+<title>Architecture of the vectordb project</title>
+<desc>A generated text corpus flows into embeddings.py, which produces vectors consumed by core.py's FlatIndex and IVFIndex inside the VectorDB engine. The engine's output feeds three consumers: benchmark.py, test_core.py, and the web search console.</desc>
+<defs>
+<marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+  <path d="M2 1L8 5L2 9" fill="none" stroke="#5F5E5A" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+</marker>
+</defs>
+
+<style>
+  text { font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; }
+  .th { font-size: 14px; font-weight: 600; }
+  .ts { font-size: 12px; }
+  .arr { stroke: #5F5E5A; stroke-width: 1.5; fill: none; }
+</style>
+
+<!-- corpus.py -->
+<rect x="250" y="20" width="180" height="44" rx="8" fill="#F1EFE8" stroke="#888780" stroke-width="0.5"/>
+<text class="th" x="340" y="38" text-anchor="middle" fill="#2C2C2A">corpus.py</text>
+<text class="ts" x="340" y="55" text-anchor="middle" fill="#5F5E5A">5,000 generated texts</text>
+<line x1="340" y1="64" x2="340" y2="98" class="arr" marker-end="url(#arrow)"/>
+
+<!-- outer package container -->
+<rect x="60" y="100" width="560" height="240" rx="20" fill="#EEEDFE" stroke="#7F77DD" stroke-width="0.5"/>
+<text class="th" x="80" y="128" fill="#26215C">vectordb package</text>
+<text class="ts" x="80" y="145" fill="#534AB7">pure numpy engine</text>
+
+<!-- embeddings.py -->
+<rect x="80" y="165" width="230" height="140" rx="12" fill="#E1F5EE" stroke="#1D9E75" stroke-width="0.5"/>
+<text class="th" x="195" y="230" text-anchor="middle" fill="#04342C">embeddings.py</text>
+<text class="ts" x="195" y="250" text-anchor="middle" fill="#0F6E56">TF-IDF + truncated SVD</text>
+
+<line x1="310" y1="235" x2="330" y2="235" class="arr" marker-end="url(#arrow)"/>
+
+<!-- core.py -->
+<rect x="330" y="165" width="230" height="140" rx="12" fill="#FAECE7" stroke="#D85A30" stroke-width="0.5"/>
+<text class="th" x="445" y="230" text-anchor="middle" fill="#4A1B0C">core.py</text>
+<text class="ts" x="445" y="250" text-anchor="middle" fill="#993C1D">FlatIndex + IVFIndex</text>
+
+<!-- trunk + branches down to consumers -->
+<line x1="445" y1="305" x2="445" y2="380" class="arr"/>
+<path d="M445,380 L145,380 L145,398" class="arr" marker-end="url(#arrow)"/>
+<path d="M445,380 L340,380 L340,398" class="arr" marker-end="url(#arrow)"/>
+<path d="M445,380 L535,380 L535,398" class="arr" marker-end="url(#arrow)"/>
+
+<!-- consumers -->
+<rect x="60" y="400" width="170" height="56" rx="8" fill="#F1EFE8" stroke="#888780" stroke-width="0.5"/>
+<text class="th" x="145" y="424" text-anchor="middle" fill="#2C2C2A">benchmark.py</text>
+<text class="ts" x="145" y="442" text-anchor="middle" fill="#5F5E5A">speed vs accuracy</text>
+
+<rect x="255" y="400" width="170" height="56" rx="8" fill="#F1EFE8" stroke="#888780" stroke-width="0.5"/>
+<text class="th" x="340" y="424" text-anchor="middle" fill="#2C2C2A">test_core.py</text>
+<text class="ts" x="340" y="442" text-anchor="middle" fill="#5F5E5A">correctness tests</text>
+
+<rect x="450" y="400" width="170" height="56" rx="8" fill="#F1EFE8" stroke="#888780" stroke-width="0.5"/>
+<text class="th" x="535" y="424" text-anchor="middle" fill="#2C2C2A">webapp/server.py</text>
+<text class="ts" x="535" y="442" text-anchor="middle" fill="#5F5E5A">search console UI</text>
+</svg>
